@@ -1,12 +1,14 @@
 # -*- coding: utf-8 -*-
 import json
+from StringIO import StringIO
 from tempfile import NamedTemporaryFile
 from PIL import Image
 
 from django.test import TestCase
 from django.core.urlresolvers import reverse
+from django.core.management import call_command
 
-from .models import About, AllRequest
+from .models import About, AllRequest, SignalData
 from hello.forms import EditPersonForm
 
 
@@ -239,3 +241,48 @@ class EditPersonTest(TestCase):
                                      'date': '2015-01-01'},
                                     HTTP_X_REQUESTED_WITH='XMLHttpRequest')
         self.assertTrue('This field is required' in response.content)
+
+
+class TagTest(TestCase):
+    """ Unit tests for own tag"""
+    fixtures = ['initial_data.json']
+
+    def test_admin_tag_with_user1(self):
+        """ Test admin tag """
+        self.client.login(username='admin', password='admin')
+        response = self.client.get(reverse('edit', kwargs={'pk': 1}))
+        self.assertContains(response,
+                            '<a href="/admin/hello/about/1/">(admin)</a>')
+
+
+class OwnCommandTest(TestCase):
+    """ Unit tests for own management command - count_objects"""
+    fixtures = ['initial_data.json']
+
+    def test_command_style(self):
+        """ Test own command """
+        out = StringIO()
+        call_command('count_objects', stderr=out)
+        self.assertIn("Error: Model About has 1 objects", out.getvalue())
+        self.assertIn("Error: Model User has 1 objects", out.getvalue())
+
+
+class SignalDataTest(TestCase):
+    """ Unit tests for SignalData"""
+
+    def test_post_create(self):
+        """ Test create signal """
+        SignalData.objects.all().delete()
+        self.client.get(reverse('about'))
+        self.assertEqual(SignalData.objects.count(), 1)
+        log_info = SignalData.objects.get(pk=1).message
+        self.assertEqual(log_info, "Create row with id 1 in AllRequest")
+
+    def test_post_delete(self):
+        """ Test delete signal """
+        SignalData.objects.all().delete()
+        self.client.get(reverse('about'))
+        AllRequest.objects.all().delete()
+        self.assertEqual(SignalData.objects.count(), 2)
+        log_info = SignalData.objects.get(pk=2).message
+        self.assertEqual(log_info, "Delete row with id 1 in AllRequest")

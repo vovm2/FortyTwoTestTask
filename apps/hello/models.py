@@ -1,5 +1,6 @@
 from django.db import models
 from django.utils import timezone
+from django.db.models import signals
 
 
 class About(models.Model):
@@ -24,3 +25,15 @@ class AllRequest(models.Model):
 
     def __unicode__(self):
         return "Request - " + str(self.id)
+
+
+class SignalData(models.Model):
+    date = models.DateTimeField(default=timezone.now)
+    message = models.TextField(null=True, blank=True)
+
+
+from .signals import add_signal_save, add_signal_delete
+
+
+signals.post_save.connect(add_signal_save, dispatch_uid='SomeText')
+signals.post_delete.connect(add_signal_delete, dispatch_uid='SomeText2')
