@@ -46,7 +46,7 @@ class PersonTest(TestCase):
         self.assertContains(response, u"Петя")
 
     def test_home_page_available(self):
-        """ Test home page available """
+        """ Test home page is available """
         response = self.client.get(reverse('about'))
         self.assertEquals(response.status_code, 200)
 
@@ -56,6 +56,6 @@ class PersonTest(TestCase):
         self.assertTrue(response.context['people'], 'Melnychuk')
 
     def test_home_page_use_about_template(self):
-        """ Test home page use template """
+        """ Test home page uses template """
         response = self.client.get(reverse('about'))
         self.assertTemplateUsed(response, 'hello/about.html')
