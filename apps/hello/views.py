@@ -1,10 +1,13 @@
 import json
 
-from django.shortcuts import render
+from django.shortcuts import render, get_object_or_404
 from django.views.decorators.csrf import csrf_exempt
+from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse
+from django.http import HttpResponseBadRequest
 
 from .models import About, AllRequest
+from .forms import EditPersonForm
 
 
 def all_people(request):
@@ -25,3 +28,27 @@ def ajax_request_list(request):
              'req_method': req.method,
              'req_path': req.path} for req in requests]
     return HttpResponse(json.dumps(data), content_type="application/json")
+
+
+@login_required
+def edit_person(request, pk):
+    person = get_object_or_404(About, pk=pk)
+    if request.method == "POST":
+        form = EditPersonForm(request.POST, request.FILES, instance=person)
+        if form.is_valid():
+            form.save()
+            if request.is_ajax():
+                return HttpResponse('OK')
+        else:
+            if request.is_ajax():
+                errors_dict = {}
+                if form.errors:
+                    for error in form.errors:
+                        e = form.errors[error]
+                        errors_dict[error] = unicode(e)
+                return HttpResponseBadRequest(json.dumps(errors_dict))
+    else:
+        form = EditPersonForm(instance=person)
+    return render(request, 'hello/edit.html', {'form': form,
+                                               'pk': pk,
+                                               'person': person})
