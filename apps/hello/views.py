@@ -2,12 +2,14 @@ import json
 
 from django.shortcuts import render, get_object_or_404
 from django.views.decorators.csrf import csrf_exempt
-from django.contrib.auth.decorators import login_required
-from django.http import HttpResponse
+from django.http import HttpResponse, HttpResponseRedirect
 from django.http import HttpResponseBadRequest
+from django.core.urlresolvers import reverse
+from django.contrib.auth.decorators import login_required
+from django.core.paginator import Paginator
 
 from .models import About, AllRequest
-from .forms import EditPersonForm
+from .forms import EditPersonForm, EditRequestForm
 
 
 def all_people(request):
@@ -26,7 +28,8 @@ def ajax_request_list(request):
     data = [{'req_id': req.id,
              'req_date': req.date.strftime("%d/%b/%Y %H:%M:%S"),
              'req_method': req.method,
-             'req_path': req.path} for req in requests]
+             'req_path': req.path,
+             'req_priority': req.priority} for req in requests]
     return HttpResponse(json.dumps(data), content_type="application/json")
 
 
@@ -52,3 +55,29 @@ def edit_person(request, pk):
     return render(request, 'hello/edit.html', {'form': form,
                                                'pk': pk,
                                                'person': person})
+
+
+def request_list_priority(request):
+    requests_list = AllRequest.objects.order_by('-priority')
+    paginator = Paginator(requests_list, 10)
+    page = request.GET.get('page')
+    try:
+        requests = paginator.page(page)
+    except:
+        requests = paginator.page(1)
+    return render(request, 'hello/request_priority.html',
+                  {'requests': requests})
+
+
+def edit_request(request, pk):
+    req = get_object_or_404(AllRequest, pk=pk)
+    if request.method == "POST":
+        form = EditRequestForm(request.POST, instance=req)
+        if form.is_valid():
+            form.save()
+            return HttpResponseRedirect(reverse('request_priority'))
+    else:
+        form = EditRequestForm(instance=req)
+    return render(request, 'hello/edit_request.html', {'form': form,
+                                                       'pk': pk,
+                                                       'req': req})

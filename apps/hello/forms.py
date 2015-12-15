@@ -15,3 +15,9 @@ class EditPersonForm(forms.ModelForm):
 
     class Meta:
         model = About
+
+
+class EditRequestForm(forms.ModelForm):
+    class Meta:
+        model = AllRequest
+        exclude = ('req', 'date', 'method', 'path')
